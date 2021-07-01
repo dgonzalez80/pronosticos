@@ -1,0 +1,258 @@
+---
+title: "  "
+output: 
+  flexdashboard::flex_dashboard:
+    logo:
+    theme : flatly
+    social: menu
+    source_code: embed
+    orientation: columns
+    vertical_layout: fill
+   
+---
+
+```{r setup, include=FALSE}
+#------------------ Packages ------------------
+library(flexdashboard)
+library(tidyverse)
+#------------------------------------------------------------------------------
+ZLK1=read_csv("data/data.soya.csv")
+ZLK1=dplyr::arrange(ZLK1, ZLK1$Fecha) # ordena la serie  por fecha
+ZLK1=distinct(ZLK1) # elimina duplicados
+d1=dim(ZLK1)        # dimension de la serie
+ud1=ZLK1[d1[1],]    # ultimo registro
+# ud1=ZLK1[1,]
+#------------------------------------------------------------------------------
+dir2="data/tasa_USD_COP.csv"
+dir3= "data/Datos históricos S&P 500.csv"
+dir4= "data/Datos históricos Futuros petróleo crudo WTI.csv"
+dir5="data/Datos históricos DIA.csv"
+#------------------------------------------------------------------------------
+# funciones para graficos
+#-----------------------------------------------------------------------
+# grafico de la serie
+grafico1=function(file){
+  fig.oil.s1=ggplot(file, aes(x = Fecha, y =cierre)) +
+    geom_line(color = "#FC4E07", size = 1)
+  ggplotly(fig.oil.s1) 
+}
+
+#-----------------------------------------------------------------------
+#grafico con tendencia
+grafico2=function(file){
+  fig.oil.s0=ggplot(file, aes(Fecha, cierre)) + 
+    geom_line(color = "#FC4E07", size = .5) +
+    geom_smooth(method = "loess", se = FALSE, span = 0.05)
+  ggplotly(fig.oil.s0)
+}
+
+#-----------------------------------------------------------------------
+#grafico con pronosticos arima
+grafico3=function(file){
+  p.arima1=auto.arima(file$cierre,stepwise = FALSE, approximation = FALSE)
+  f.arima1=forecast(p.arima1,h=14,level=95)
+  fig.oil.s2=ggplot(file, aes(Fecha, cierre)) + 
+    geom_line(color = "#FC4E07", size = .5) +
+    geom_line(aes(y=f.arima1$fitted),color = "#00AFBB", size=0.5) 
+  ggplotly(fig.oil.s2)
+}
+#-----------------------------------------------------------------------
+# tabla estimacion semana siguiente
+pronosticos=function(file){
+  p.arima1=auto.arima(file$cierre,stepwise = FALSE, approximation = FALSE)
+  f.arima1=forecast(p.arima1,h=14,level=c(95))
+  knitr::kable(f.arima1$lower, align = "rr")
+}
+#-----------------------------------------------------------------------
+# paquetes a utilizar ==========================================================
+
+# install.packages("quantmod", dependencies = TRUE)
+# install.packages("readxl", dependencies = TRUE)
+# install.packages("hrbrthemes")
+# install.packages("plotly")
+# install.packages("dygraphs")
+
+library(tidyverse)
+library(quantmod)
+library(readxl)
+library(dplyr)
+library(hrbrthemes)
+library(plotly)
+library(dygraphs)
+library(forecast)
+library(colortools)
+library(stringr)
+library(lubridate)
+library(rvest)
+library(xts)
+library(zoo)
+#===============================================================================
+
+```
+
+
+ZLK1
+=======================================================================
+Column { data-width=50 }
+-----------------------------------------------------------------------
+### apertura  {.value-box}
+```{r}
+valueBox(value = ud1$apertura, 
+         caption = "apertura", 
+         icon = "fa-line-chart", 
+         color = "#3cb371")
+```
+
+
+### cierre  {.value-box}
+```{r}
+valueBox(value = ud1$cierre, 
+         caption = "cierrre", 
+         icon = "fa-line-chart", 
+         color = "#3cb371")
+```
+
+
+### minimo  {.value-box}
+```{r}
+valueBox(value = ud1$min, 
+         caption = "minimo", 
+         icon = "fa-line-chart", 
+         color = "#3cb371")
+```
+
+
+### maximo {.value-box}
+```{r}
+valueBox(value = ud1$max, 
+         caption = "maximo", 
+         icon = "fa-line-chart", 
+         color = "#3cb371")
+```
+
+### variacion  {.value-box}
+```{r}
+valueBox(value = ud1$var, 
+         caption = "variacion", 
+         icon = "fa-line-chart", 
+         color = "#3cb371")
+```
+
+
+### volumen  {.value-box}
+```{r}
+valueBox(value = paste(ud1$vol,"K"), 
+         caption = "volumen", 
+         icon = "fa-line-chart", 
+         color = "#3cb371")
+```
+
+
+
+Column { data-width=1000 }
+-----------------------------------------------------------------------
+```{r, fig.dim=c(14,7)}
+grafico1(ZLK1)
+```
+
+
+
+
+
+Tendencia
+=======================================================================
+Column { data-width=900 }
+-----------------------------------------------------------------------
+
+```{r, fig.dim=c(14,7)}
+grafico2(ZLK1)
+```
+
+
+Pronósticos
+=======================================================================
+Column { data-width=800 }
+-----------------------------------------------------------------------
+```{r, fig.dim=c(13,7)}
+grafico3(ZLK1)
+```
+
+
+
+Column { data-width=200}
+-----------------------------------------------------------------------
+### Pronosticos proximos dias
+```{r}
+# pronosticos(ZLK1,14)
+
+```
+
+
+
+
+Datos
+=======================================================================
+
+Column { data-width=400 }
+-----------------------------------------------------------------------
+```{r}
+d=dim(ZLK1)
+DT::datatable(psych::headTail(ZLK1,d[1] ),fillContainer = FALSE, options = list(pageLength = 15))
+```
+Column { data-width=200 }
+-----------------------------------------------------------------------
+
+```{r}
+# pronosticos1(ZLK1,14)
+```
+Column { data-width=200 }
+-----------------------------------------------------------------------
+
+
+Indicadores
+=======================================================================
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### petróleo crudo WTI
+```{r, fig.dim=c(14,2)} 
+#  fig.i1=ggplot(tasa.USD.COL, aes(Fecha, cierre)) + 
+#  geom_line(color = "#0080bb", size = 1) 
+#  ggplotly(fig.i1)
+```
+
+-----------------------------------------------------------------------
+
+### Dow Jones Ind.
+```{r, fig.dim=c(14,2)}
+# fig.i2=ggplot(Dow.Jones, aes(Fecha, cierre)) + 
+#  geom_line(color = "#004145", size = 1) 
+# ggplotly(fig.i2)
+```
+
+-----------------------------------------------------------------------
+
+### USD/COP
+```{r, fig.dim=c(14,2)}
+# fig.i3=ggplot(tasa.USD.COL, aes(Fecha, cierre)) + 
+#  geom_line(color = "#0052bb", size = 1)
+# ggplotly(fig.i3)
+```
+
+###  S&P   
+```{r, fig.dim=c(14,2)}
+# fig.i3=ggplot(SyP.500, aes(Fecha, cierre)) + 
+#  geom_line(color = "#0052bb", size = 1)
+# ggplotly(fig.i3)
+```
+
+Información
+=======================================================================
+```{r}
+
+```
+
+
+Información 
+=======================================================================
+
